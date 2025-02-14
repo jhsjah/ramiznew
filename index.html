@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        img { width: 100px; }
+    </style>
+</head>
+<body>
+    <h1>Government Sector</h1>
+    <div id="gov-sector"></div>
+    <h1>Private Sector</h1>
+    <div id="private-sector"></div>
+    <h1>Other Sector</h1>
+    <div id="other-sector"></div>
+
+    <h2>Add a New Card</h2>
+    <form id="cardForm">
+        <label>Title:</label>
+        <input type="text" id="title" required><br>
+        <label>Description:</label>
+        <textarea id="description" required></textarea><br>
+        <label>Link:</label>
+        <input type="url" id="link" required><br>
+        <label>Image:</label>
+        <input type="file" id="image" accept="image/*" required><br>
+        <img id="preview" style="display:none;"><br>
+        <button type="submit">Add Card</button>
+    </form>
+
+    <h2>Cards List</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Link</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="cards-list"></tbody>
+    </table>
+
+    <script>
+        const API_BASE_URL = "https://newsapibackend-746u.onrender.com/api";
+
+        // ✅ Fetch and Display Cards
+        async function fetchCards() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/slider1`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Assuming the API returns an array, not an object with `cards`
+                renderCards(data); 
+            } catch (error) {
+                console.error("Error fetching cards:", error);
+            }
+        }
+
+        // ✅ Render Cards in the Table
+        function renderCards(cards) {
+            const tableBody = document.getElementById("cards-list");
+            tableBody.innerHTML = "";
+            cards.forEach(card => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${card.title}</td>
+                    <td>${card.description}</td>
+                    <td><a href="${card.link}" target="_blank">${card.link}</a></td>
+                    <td><img src="${API_BASE_URL}/uploads/${card.image}" alt="${card.title}" width="100"></td>
+                    <td><button onclick="deleteCard('${card._id}')">Delete</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // ✅ Preview Image Before Upload
+        document.getElementById("image").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const preview = document.getElementById("preview");
+                preview.src = URL.createObjectURL(file);
+                preview.style.display = "block";
+            }
+        });
+
+        // ✅ Handle Form Submission
+        document.getElementById("cardForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append("title", document.getElementById("title").value);
+            formData.append("description", document.getElementById("description").value);
+            formData.append("link", document.getElementById("link").value);
+            formData.append("image", document.getElementById("image").files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/slider1/add`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log("Added Card:", result);
+                fetchCards(); // Refresh UI after adding a card
+            } catch (error) {
+                console.error("Error adding card:", error);
+            }
+        });
+
+        // ✅ Delete Card
+        async function deleteCard(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/slider1/delete/${id}`, { method: "DELETE" });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                fetchCards();
+            } catch (error) {
+                console.error("Error deleting card:", error);
+            }
+        }
+
+        // ✅ Initial Fetch
+        fetchCards();
+    </script>
+</body>
+</html>
